@@ -215,26 +215,41 @@ export default function Shoe3DViewer({
   const effectiveAutoRotate = interactive ? (auto && !isInteracting && !isResetting) : true;
 
   const isMobile = useIsMobile();
-  const [orbitEnabled, setOrbitEnabled] = useState(true);
-  const touchStartRef = useRef({ x: 0, y: 0 });
+  const touchStateRef = useRef({ x: 0, y: 0, isDecided: false });
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartRef.current = {
+    touchStateRef.current = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
+      isDecided: false,
     };
-    setOrbitEnabled(true);
+    if (controlsRef.current && !isResetting) {
+      controlsRef.current.enabled = true;
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!orbitEnabled) return;
-    const dx = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
-    const dy = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+    if (touchStateRef.current.isDecided) return;
+    
+    const dx = Math.abs(e.touches[0].clientX - touchStateRef.current.x);
+    const dy = Math.abs(e.touches[0].clientY - touchStateRef.current.y);
 
-    // If movement is predominantly vertical and crosses a small threshold
-    // temporarily disable OrbitControls so the browser can take over page scrolling
-    if (dy > dx && dy > 3) {
-      setOrbitEnabled(false);
+    // Only decide once movement crosses a 3px threshold
+    if (dy > 3 || dx > 3) {
+      touchStateRef.current.isDecided = true;
+      // If movement is predominantly vertical, disable OrbitControls immediately
+      if (dy > dx) {
+        if (controlsRef.current) {
+          controlsRef.current.enabled = false;
+        }
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStateRef.current.isDecided = false;
+    if (controlsRef.current && !isResetting) {
+      controlsRef.current.enabled = true;
     }
   };
 
@@ -244,6 +259,8 @@ export default function Shoe3DViewer({
       style={{ touchAction: 'pan-y' }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     >
       <Canvas
         shadows
@@ -287,7 +304,7 @@ export default function Shoe3DViewer({
           <>
             <OrbitControls
               ref={controlsRef}
-              enabled={orbitEnabled && !isResetting}
+              enabled={!isResetting}
               enablePan={false}
               enableZoom={enableZoom}
               enableDamping={!isMobile}
