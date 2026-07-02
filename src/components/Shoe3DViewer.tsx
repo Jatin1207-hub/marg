@@ -10,6 +10,7 @@ import {
 import { Suspense, useRef, useState, useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { LogoMark } from "./Logo";
+import { useIsMobile } from "../hooks/use-mobile";
 
 // ---------------------------------------------------------------------------
 // Single shared GLTF model path
@@ -213,9 +214,12 @@ export default function Shoe3DViewer({
   const isCard = !interactive && !showAutoRotateToggle;
   const effectiveAutoRotate = interactive ? (auto && !isInteracting && !isResetting) : true;
 
+  const isMobile = useIsMobile();
+
   return (
     <>
       <Canvas
+        style={{ touchAction: 'pan-y' }}
         shadows
         camera={{ position: [3.5, 1.8, 3.5], fov: 38 }}
         dpr={[1, 2]}
@@ -260,6 +264,11 @@ export default function Shoe3DViewer({
               enabled={!isResetting}
               enablePan={false}
               enableZoom={enableZoom}
+              enableDamping={!isMobile}
+              touches={{
+                ONE: THREE.TOUCH.ROTATE,
+                TWO: THREE.TOUCH.DOLLY_PAN
+              }}
               minDistance={2.5}
               maxDistance={7}
               minPolarAngle={Math.PI / 6}
