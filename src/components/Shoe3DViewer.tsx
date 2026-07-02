@@ -215,11 +215,37 @@ export default function Shoe3DViewer({
   const effectiveAutoRotate = interactive ? (auto && !isInteracting && !isResetting) : true;
 
   const isMobile = useIsMobile();
+  const [orbitEnabled, setOrbitEnabled] = useState(true);
+  const touchStartRef = useRef({ x: 0, y: 0 });
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+    setOrbitEnabled(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!orbitEnabled) return;
+    const dx = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
+    const dy = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+
+    // If movement is predominantly vertical and crosses a small threshold
+    // temporarily disable OrbitControls so the browser can take over page scrolling
+    if (dy > dx && dy > 3) {
+      setOrbitEnabled(false);
+    }
+  };
 
   return (
-    <>
+    <div 
+      className="w-full h-full relative" 
+      style={{ touchAction: 'pan-y' }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+    >
       <Canvas
-        style={{ touchAction: 'pan-y' }}
         shadows
         camera={{ position: [3.5, 1.8, 3.5], fov: 38 }}
         dpr={[1, 2]}
@@ -261,7 +287,7 @@ export default function Shoe3DViewer({
           <>
             <OrbitControls
               ref={controlsRef}
-              enabled={!isResetting}
+              enabled={orbitEnabled && !isResetting}
               enablePan={false}
               enableZoom={enableZoom}
               enableDamping={!isMobile}
@@ -299,6 +325,6 @@ export default function Shoe3DViewer({
           {auto ? "PAUSE" : "AUTO-ROTATE"}
         </button>
       )}
-    </>
+    </div>
   );
 }
